@@ -1,5 +1,5 @@
 import TranslatorCommand from "./translator-command";
 
 export default function Command() {
-  return <TranslatorCommand />;
+  return <TranslatorCommand prefillSource="clipboard" />;
 }

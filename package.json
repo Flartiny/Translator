@@ -55,6 +55,37 @@
           ]
         }
       ]
+    },
+    {
+      "name": "translate-from-clipboard",
+      "title": "Translator from Clipboard",
+      "description": "Prefill from clipboard and translate",
+      "mode": "view",
+      "subtitle": "Clipboard",
+      "preferences": [
+        {
+          "name": "defaultTargetLanguage",
+          "title": "Default Target Language",
+          "description": "Fallback target language before auto-detection is applied.",
+          "type": "dropdown",
+          "required": true,
+          "default": "en",
+          "data": [
+            {
+              "title": "English",
+              "value": "en"
+            },
+            {
+              "title": "Chinese",
+              "value": "zh"
+            },
+            {
+              "title": "Japanese",
+              "value": "ja"
+            }
+          ]
+        }
+      ]
     }
   ],
   "preferences": [
