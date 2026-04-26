@@ -58,7 +58,7 @@
     },
     {
       "name": "translate-from-clipboard",
-      "title": "Translator from Clipboard",
+      "title": "Clipboard Translator",
       "description": "Prefill from clipboard and translate",
       "mode": "view",
       "subtitle": "Clipboard",
@@ -89,7 +89,7 @@
     },
     {
       "name": "manage-api-profiles",
-      "title": "Manage API Profiles",
+      "title": "Translator Profiles",
       "description": "Create and manage API profiles for fallback",
       "mode": "view",
       "subtitle": "Profiles"

@@ -1,9 +1,36 @@
-import { Action, ActionPanel, Detail, Form, Icon } from "@raycast/api";
+import { Action, ActionPanel, Detail, Form, Icon, LaunchType, Toast, launchCommand, showToast } from "@raycast/api";
 import { LANGUAGE_OPTIONS, SupportedLanguage, getLanguageLabel } from "../types/language";
 import { TranslationResult } from "../types/translation";
 
+const NO_PROFILE_ERROR_KEYWORD = "No API profiles found";
+const MANAGE_PROFILE_COMMAND_NAME = "manage-api-profiles";
+
+async function openManageProfilesCommand() {
+  try {
+    await launchCommand({ name: MANAGE_PROFILE_COMMAND_NAME, type: LaunchType.UserInitiated });
+  } catch (error) {
+    await showToast({
+      style: Toast.Style.Failure,
+      title: "Failed to open profile manager",
+      message: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+}
+
 export function ErrorView(props: { message: string }) {
-  return <Detail markdown={`Configuration error:\n\n${props.message}`} />;
+  const showManageProfileAction = props.message.includes(NO_PROFILE_ERROR_KEYWORD);
+  return (
+    <Detail
+      markdown={`Configuration error:\n\n${props.message}`}
+      actions={
+        showManageProfileAction ? (
+          <ActionPanel>
+            <Action title="Manage API Profiles" icon={Icon.Gear} onAction={() => void openManageProfilesCommand()} />
+          </ActionPanel>
+        ) : undefined
+      }
+    />
+  );
 }
 
 export function TranslationResultView(props: { result: TranslationResult; onBack: () => void }) {

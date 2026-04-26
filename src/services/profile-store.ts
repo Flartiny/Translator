@@ -172,7 +172,7 @@ export function toProfileDraft(profile?: ApiProfile): ProfileDraft {
     apiKey: profile?.apiKey ?? "",
     model: profile?.model ?? "",
     timeoutMs: String(profile?.timeoutMs ?? 30000),
-    enableStreaming: profile?.enableStreaming ?? false,
+    enableStreaming: profile?.enableStreaming ?? true,
     customHeadersJson: profile?.customHeadersJson ?? "",
     enabled: profile?.enabled ?? true,
   };

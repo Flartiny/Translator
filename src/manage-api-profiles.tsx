@@ -5,6 +5,8 @@ import { buildProfileFromDraft, maskApiKey, readProfileStore, toProfileDraft, wr
 import { getErrorMessage } from "./services/error-utils";
 import { ApiProfile, ProfileStoreData } from "./types/profile";
 
+const COPY_PROFILE_NAME_SUFFIX = " - Copy";
+
 interface ProfileStoreState {
   store: ProfileStoreData;
   isLoading: boolean;
@@ -128,6 +130,30 @@ function useEditProfileAction(params: {
   );
 }
 
+function useCreateFromProfileAction(params: {
+  store: ProfileStoreData;
+  persist: (store: ProfileStoreData) => Promise<void>;
+  push: (component: ReactElement) => void;
+}) {
+  const { store, persist, push } = params;
+  return useCallback(
+    (sourceProfile: ApiProfile) => {
+      const draft = toProfileDraft(sourceProfile);
+      push(
+        <ProfileEditorForm
+          title={`Create from ${sourceProfile.name}`}
+          initialDraft={{ ...draft, name: `${sourceProfile.name}${COPY_PROFILE_NAME_SUFFIX}` }}
+          onSubmit={async (nextDraft) => {
+            const profile = buildProfileFromDraft(nextDraft);
+            await persist({ profiles: [...store.profiles, profile], defaultProfileId: store.defaultProfileId });
+          }}
+        />,
+      );
+    },
+    [persist, push, store.defaultProfileId, store.profiles],
+  );
+}
+
 function useSimpleProfileActions(store: ProfileStoreData, persist: (store: ProfileStoreData) => Promise<void>) {
   const setDefaultProfile = useCallback(async (profileId: string) => {
     await persist({ profiles: store.profiles, defaultProfileId: profileId });
@@ -170,6 +196,7 @@ function ProfileListItem(props: {
   total: number;
   isDefault: boolean;
   onCreate: () => void;
+  onCreateFrom: (profile: ApiProfile) => void;
   onEdit: (profile: ApiProfile) => void;
   onSetDefault: (profileId: string) => Promise<void>;
   onToggleEnabled: (profileId: string) => Promise<void>;
@@ -188,6 +215,7 @@ function ProfileListItem(props: {
         <ActionPanel>
           <Action title="Create Profile" icon={Icon.Plus} onAction={props.onCreate} />
           <Action title="Edit Profile" icon={Icon.Pencil} onAction={() => props.onEdit(profile)} />
+          <Action title="Create from This Profile" icon={Icon.Clipboard} onAction={() => props.onCreateFrom(profile)} />
           <Action title="Set as Default" icon={Icon.Star} onAction={() => props.onSetDefault(profile.id)} />
           <Action title={enableTitle} icon={Icon.Checkmark} onAction={() => props.onToggleEnabled(profile.id)} />
           <Action title="Move Up" icon={Icon.ArrowUp} onAction={() => props.onMove(profile.id, -1)} disabled={index === 0} />
@@ -203,6 +231,7 @@ export default function ManageApiProfiles() {
   const { push } = useNavigation();
   const { state, persist } = useProfileStoreState();
   const createProfile = useCreateProfileAction({ store: state.store, persist, push });
+  const createFromProfile = useCreateFromProfileAction({ store: state.store, persist, push });
   const editProfile = useEditProfileAction({ store: state.store, persist, push });
   const { setDefaultProfile, toggleProfileEnabled, move } = useSimpleProfileActions(state.store, persist);
   const deleteProfile = useDeleteProfileAction(state.store, persist);
@@ -224,6 +253,7 @@ export default function ManageApiProfiles() {
           total={profiles.length}
           isDefault={state.store.defaultProfileId === profile.id}
           onCreate={createProfile}
+          onCreateFrom={createFromProfile}
           onEdit={editProfile}
           onSetDefault={setDefaultProfile}
           onToggleEnabled={toggleProfileEnabled}

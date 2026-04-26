@@ -323,17 +323,13 @@ function TranslatorCommandInner(props: {
   );
 }
 
-function LoadingView() {
-  return <TranslationFormView text="" targetLanguage="en" autoDetectSource manualSourceLanguage="zh" isSubmitting onTextChange={() => {}} onTargetLanguageChange={() => {}} onAutoDetectSourceChange={() => {}} onManualSourceLanguageChange={() => {}} onSubmit={() => {}} />;
-}
-
 export default function TranslatorCommand(props: TranslatorCommandProps) {
   const prefillSource = props.prefillSource ?? "none";
   const autoSubmitOnPrefill = props.autoSubmitOnPrefill ?? false;
   const runtimeState = useRuntimeState();
 
   if (runtimeState.isLoading) {
-    return <LoadingView />;
+    return null;
   }
 
   if (runtimeState.error || !runtimeState.runtime) {
