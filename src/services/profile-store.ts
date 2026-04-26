@@ -41,7 +41,11 @@ function normalizeCustomHeaders(rawHeaders: string): string {
     throw new Error("Custom headers must be valid JSON.");
   }
 
-  if (!parsedHeaders || Array.isArray(parsedHeaders) || typeof parsedHeaders !== "object") {
+  if (
+    !parsedHeaders ||
+    Array.isArray(parsedHeaders) ||
+    typeof parsedHeaders !== "object"
+  ) {
     throw new Error("Custom headers JSON must be an object.");
   }
 
@@ -86,8 +90,12 @@ function validateBaseUrl(baseUrl: string): string {
 
 function ensureStoreShape(store: ProfileStoreData): ProfileStoreData {
   const profileIds = new Set(store.profiles.map((profile) => profile.id));
-  const hasDefault = store.defaultProfileId ? profileIds.has(store.defaultProfileId) : false;
-  const defaultProfileId = hasDefault ? store.defaultProfileId : store.profiles[0]?.id ?? null;
+  const hasDefault = store.defaultProfileId
+    ? profileIds.has(store.defaultProfileId)
+    : false;
+  const defaultProfileId = hasDefault
+    ? store.defaultProfileId
+    : (store.profiles[0]?.id ?? null);
   return { profiles: store.profiles, defaultProfileId };
 }
 
@@ -97,7 +105,13 @@ function parseStoredProfile(profile: unknown): ApiProfile | null {
   }
 
   const candidate = profile as Partial<ApiProfile>;
-  if (!candidate.id || !candidate.name || !candidate.baseUrl || !candidate.apiKey || !candidate.model) {
+  if (
+    !candidate.id ||
+    !candidate.name ||
+    !candidate.baseUrl ||
+    !candidate.apiKey ||
+    !candidate.model
+  ) {
     return null;
   }
 
@@ -136,8 +150,11 @@ function parseStore(rawStore: string | undefined): ProfileStoreData {
   }
 
   const data = parsedStore as Partial<ProfileStoreData>;
-  const profiles = Array.isArray(data.profiles) ? data.profiles.map(parseStoredProfile).filter(Boolean) as ApiProfile[] : [];
-  const defaultProfileId = typeof data.defaultProfileId === "string" ? data.defaultProfileId : null;
+  const profiles = Array.isArray(data.profiles)
+    ? (data.profiles.map(parseStoredProfile).filter(Boolean) as ApiProfile[])
+    : [];
+  const defaultProfileId =
+    typeof data.defaultProfileId === "string" ? data.defaultProfileId : null;
   return ensureStoreShape({ profiles, defaultProfileId });
 }
 
@@ -146,12 +163,20 @@ export async function readProfileStore(): Promise<ProfileStoreData> {
   return parseStore(rawStore ?? undefined);
 }
 
-export async function writeProfileStore(store: ProfileStoreData): Promise<void> {
+export async function writeProfileStore(
+  store: ProfileStoreData,
+): Promise<void> {
   const normalizedStore = ensureStoreShape(store);
-  await LocalStorage.setItem(PROFILE_STORE_KEY, JSON.stringify(normalizedStore));
+  await LocalStorage.setItem(
+    PROFILE_STORE_KEY,
+    JSON.stringify(normalizedStore),
+  );
 }
 
-export function buildProfileFromDraft(draft: ProfileDraft, profileId?: string): ApiProfile {
+export function buildProfileFromDraft(
+  draft: ProfileDraft,
+  profileId?: string,
+): ApiProfile {
   return {
     id: profileId ?? crypto.randomUUID(),
     name: validateProfileName(draft.name),

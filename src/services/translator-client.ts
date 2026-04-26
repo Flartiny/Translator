@@ -24,7 +24,12 @@ export function isRecoverableProviderError(error: unknown): boolean {
     return false;
   }
 
-  return error.kind === "network" || error.kind === "timeout" || error.kind === "rate_limit" || error.kind === "server_error";
+  return (
+    error.kind === "network" ||
+    error.kind === "timeout" ||
+    error.kind === "rate_limit" ||
+    error.kind === "server_error"
+  );
 }
 
 export interface OpenAICompatibleConfig {
@@ -95,26 +100,41 @@ function classifyHttpError(statusCode: number): ProviderErrorKind {
   return "other";
 }
 
-function buildHttpError(response: Response, payload: OpenAICompatibleResponse): TranslationProviderError {
+function buildHttpError(
+  response: Response,
+  payload: OpenAICompatibleResponse,
+): TranslationProviderError {
   const fallbackMessage = `API request failed with status ${response.status}.`;
   const message = payload.error?.message?.trim() || fallbackMessage;
-  return new TranslationProviderError(message, classifyHttpError(response.status), response.status);
+  return new TranslationProviderError(
+    message,
+    classifyHttpError(response.status),
+    response.status,
+  );
 }
 
 function readTranslation(payload: OpenAICompatibleResponse): string {
   const content = payload.choices?.[0]?.message?.content;
   if (!content?.trim()) {
-    throw new TranslationProviderError("API response does not contain translated content.", "other");
+    throw new TranslationProviderError(
+      "API response does not contain translated content.",
+      "other",
+    );
   }
 
   return content.trim();
 }
 
-async function parseResponsePayload(response: Response): Promise<OpenAICompatibleResponse> {
+async function parseResponsePayload(
+  response: Response,
+): Promise<OpenAICompatibleResponse> {
   try {
     return (await response.json()) as OpenAICompatibleResponse;
   } catch {
-    throw new TranslationProviderError("API response is not valid JSON.", "other");
+    throw new TranslationProviderError(
+      "API response is not valid JSON.",
+      "other",
+    );
   }
 }
 
@@ -150,7 +170,10 @@ function parseStreamingDelta(dataLine: string): string {
   try {
     chunk = JSON.parse(dataLine) as OpenAICompatibleStreamChunk;
   } catch {
-    throw new TranslationProviderError("Invalid streaming chunk from API.", "other");
+    throw new TranslationProviderError(
+      "Invalid streaming chunk from API.",
+      "other",
+    );
   }
 
   const deltaContent = chunk.choices?.[0]?.delta?.content;
@@ -181,7 +204,10 @@ function readDataLines(lines: string[]): string[] {
 
 function parseStreamingTranslation(translatedText: string): string {
   if (!translatedText.trim()) {
-    throw new TranslationProviderError("Streaming response does not contain translated content.", "other");
+    throw new TranslationProviderError(
+      "Streaming response does not contain translated content.",
+      "other",
+    );
   }
 
   return translatedText.trim();
@@ -196,7 +222,10 @@ async function parseNonStreamingResponse(response: Response): Promise<string> {
   return readTranslation(payload);
 }
 
-async function parseStreamingResponse(response: Response, touchTimeout: () => void): Promise<string> {
+async function parseStreamingResponse(
+  response: Response,
+  touchTimeout: () => void,
+): Promise<string> {
   const contentType = response.headers.get("content-type")?.toLowerCase() ?? "";
   if (!contentType.includes(EVENT_STREAM_CONTENT_TYPE)) {
     return parseNonStreamingResponse(response);
@@ -208,7 +237,10 @@ async function parseStreamingResponse(response: Response, touchTimeout: () => vo
   }
 
   if (!response.body) {
-    throw new TranslationProviderError("Streaming response body is empty.", "other");
+    throw new TranslationProviderError(
+      "Streaming response body is empty.",
+      "other",
+    );
   }
 
   const reader = response.body.getReader();
@@ -240,7 +272,10 @@ async function parseStreamingResponse(response: Response, touchTimeout: () => vo
   return parseStreamingTranslation(translatedText);
 }
 
-function buildRequestPayload(config: OpenAICompatibleConfig, request: TranslationRequest): Record<string, unknown> {
+function buildRequestPayload(
+  config: OpenAICompatibleConfig,
+  request: TranslationRequest,
+): Record<string, unknown> {
   return {
     model: config.model,
     temperature: TRANSLATION_TEMPERATURE,
@@ -262,7 +297,10 @@ function wrapUnknownError(error: unknown): TranslationProviderError {
   }
 
   if (error instanceof TypeError) {
-    return new TranslationProviderError(error.message || "Network request failed.", "network");
+    return new TranslationProviderError(
+      error.message || "Network request failed.",
+      "network",
+    );
   }
 
   if (error instanceof Error) {

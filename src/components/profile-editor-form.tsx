@@ -1,4 +1,11 @@
-import { Action, ActionPanel, Form, showToast, Toast, useNavigation } from "@raycast/api";
+import {
+  Action,
+  ActionPanel,
+  Form,
+  showToast,
+  Toast,
+  useNavigation,
+} from "@raycast/api";
 import { ProfileDraft } from "../services/profile-store";
 import { getErrorMessage } from "../services/error-utils";
 
@@ -15,7 +22,11 @@ export function ProfileEditorForm(props: {
       await showToast({ style: Toast.Style.Success, title: "Profile saved." });
       pop();
     } catch (error) {
-      await showToast({ style: Toast.Style.Failure, title: "Save failed", message: getErrorMessage(error) });
+      await showToast({
+        style: Toast.Style.Failure,
+        title: "Save failed",
+        message: getErrorMessage(error),
+      });
     }
   };
 
@@ -28,14 +39,48 @@ export function ProfileEditorForm(props: {
         </ActionPanel>
       }
     >
-      <Form.TextField id="name" title="Profile Name" defaultValue={props.initialDraft.name} />
-      <Form.TextField id="baseUrl" title="API Base URL" defaultValue={props.initialDraft.baseUrl} />
-      <Form.PasswordField id="apiKey" title="API Key" defaultValue={props.initialDraft.apiKey} />
-      <Form.TextField id="model" title="Model" defaultValue={props.initialDraft.model} />
-      <Form.TextField id="timeoutMs" title="Request Timeout (ms)" defaultValue={props.initialDraft.timeoutMs} />
-      <Form.Checkbox id="enableStreaming" title="Enable Streaming" label="Enabled" defaultValue={props.initialDraft.enableStreaming} />
-      <Form.TextArea id="customHeadersJson" title="Custom Headers JSON" defaultValue={props.initialDraft.customHeadersJson} />
-      <Form.Checkbox id="enabled" title="Profile Enabled" label="Enabled" defaultValue={props.initialDraft.enabled} />
+      <Form.TextField
+        id="name"
+        title="Profile Name"
+        defaultValue={props.initialDraft.name}
+      />
+      <Form.TextField
+        id="baseUrl"
+        title="API Base URL"
+        defaultValue={props.initialDraft.baseUrl}
+      />
+      <Form.PasswordField
+        id="apiKey"
+        title="API Key"
+        defaultValue={props.initialDraft.apiKey}
+      />
+      <Form.TextField
+        id="model"
+        title="Model"
+        defaultValue={props.initialDraft.model}
+      />
+      <Form.TextField
+        id="timeoutMs"
+        title="Request Timeout (ms)"
+        defaultValue={props.initialDraft.timeoutMs}
+      />
+      <Form.Checkbox
+        id="enableStreaming"
+        title="Enable Streaming"
+        label="Enabled"
+        defaultValue={props.initialDraft.enableStreaming}
+      />
+      <Form.TextArea
+        id="customHeadersJson"
+        title="Custom Headers JSON"
+        defaultValue={props.initialDraft.customHeadersJson}
+      />
+      <Form.Checkbox
+        id="enabled"
+        title="Profile Enabled"
+        label="Enabled"
+        defaultValue={props.initialDraft.enabled}
+      />
     </Form>
   );
 }

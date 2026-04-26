@@ -24,7 +24,10 @@ export function detectLanguageFromText(text: string): SupportedLanguage {
 
   const hanCount = countMatches(trimmedText, HAN_REGEX);
   const latinCount = countMatches(trimmedText, LATIN_REGEX);
-  const minimumHanCount = Math.max(MIN_HAN_CHAR_COUNT, Math.floor(latinCount * HAN_TO_LATIN_RATIO));
+  const minimumHanCount = Math.max(
+    MIN_HAN_CHAR_COUNT,
+    Math.floor(latinCount * HAN_TO_LATIN_RATIO),
+  );
   if (hanCount > 0 && hanCount >= minimumHanCount) {
     return "zh";
   }
@@ -32,7 +35,9 @@ export function detectLanguageFromText(text: string): SupportedLanguage {
   return DEFAULT_LANGUAGE;
 }
 
-export function inferDefaultTargetLanguage(sourceLanguage: SupportedLanguage): SupportedLanguage {
+export function inferDefaultTargetLanguage(
+  sourceLanguage: SupportedLanguage,
+): SupportedLanguage {
   if (sourceLanguage === "zh") {
     return "en";
   }

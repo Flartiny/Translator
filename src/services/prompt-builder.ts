@@ -21,7 +21,9 @@ function clearNonTextPlaceholders(prompt: string): string {
     .replaceAll("{{imt_style_guide}}", "");
 }
 
-export function buildTranslatorSystemPrompt(targetLanguage: SupportedLanguage): string {
+export function buildTranslatorSystemPrompt(
+  targetLanguage: SupportedLanguage,
+): string {
   const targetLanguageName = getLanguageNativeName(targetLanguage);
   const prompt = clearNonTextPlaceholders(PROMPT_TEMPLATE);
   return prompt.replaceAll("{{to}}", targetLanguageName).trim();

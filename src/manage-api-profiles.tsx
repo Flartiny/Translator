@@ -1,7 +1,27 @@
-import { Action, ActionPanel, Alert, confirmAlert, Icon, List, useNavigation } from "@raycast/api";
-import { type ReactElement, useCallback, useEffect, useMemo, useState } from "react";
+import {
+  Action,
+  ActionPanel,
+  Alert,
+  confirmAlert,
+  Icon,
+  List,
+  useNavigation,
+} from "@raycast/api";
+import {
+  type ReactElement,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { ProfileEditorForm } from "./components/profile-editor-form";
-import { buildProfileFromDraft, maskApiKey, readProfileStore, toProfileDraft, writeProfileStore } from "./services/profile-store";
+import {
+  buildProfileFromDraft,
+  maskApiKey,
+  readProfileStore,
+  toProfileDraft,
+  writeProfileStore,
+} from "./services/profile-store";
 import { getErrorMessage } from "./services/error-utils";
 import { ApiProfile, ProfileStoreData } from "./types/profile";
 
@@ -18,12 +38,25 @@ function ensureDefaultProfileId(store: ProfileStoreData): ProfileStoreData {
     return { profiles: [], defaultProfileId: null };
   }
 
-  const hasDefault = store.defaultProfileId ? store.profiles.some((profile) => profile.id === store.defaultProfileId) : false;
-  return { profiles: store.profiles, defaultProfileId: hasDefault ? store.defaultProfileId : store.profiles[0].id };
+  const hasDefault = store.defaultProfileId
+    ? store.profiles.some((profile) => profile.id === store.defaultProfileId)
+    : false;
+  return {
+    profiles: store.profiles,
+    defaultProfileId: hasDefault
+      ? store.defaultProfileId
+      : store.profiles[0].id,
+  };
 }
 
-function moveProfile(profiles: ApiProfile[], profileId: string, offset: -1 | 1): ApiProfile[] {
-  const currentIndex = profiles.findIndex((profile) => profile.id === profileId);
+function moveProfile(
+  profiles: ApiProfile[],
+  profileId: string,
+  offset: -1 | 1,
+): ApiProfile[] {
+  const currentIndex = profiles.findIndex(
+    (profile) => profile.id === profileId,
+  );
   const nextIndex = currentIndex + offset;
   if (currentIndex < 0 || nextIndex < 0 || nextIndex >= profiles.length) {
     return profiles;
@@ -47,7 +80,11 @@ function useProfileStoreState() {
       const store = await readProfileStore();
       setState({ store, isLoading: false, error: null });
     } catch (error) {
-      setState({ store: { profiles: [], defaultProfileId: null }, isLoading: false, error: getErrorMessage(error) });
+      setState({
+        store: { profiles: [], defaultProfileId: null },
+        isLoading: false,
+        error: getErrorMessage(error),
+      });
     }
   }, []);
 
@@ -69,7 +106,10 @@ function buildProfileSubtitle(profile: ApiProfile): string {
   return `${profile.model} · ${profile.baseUrl} · ${profileState}`;
 }
 
-function getProfileIcon(isDefault: boolean): { source: Icon; tintColor?: string } {
+function getProfileIcon(isDefault: boolean): {
+  source: Icon;
+  tintColor?: string;
+} {
   if (isDefault) {
     return { source: Icon.Star, tintColor: "#f5c542" };
   }
@@ -77,8 +117,13 @@ function getProfileIcon(isDefault: boolean): { source: Icon; tintColor?: string 
   return { source: Icon.Network };
 }
 
-function buildAccessories(profile: ApiProfile, isDefault: boolean): List.Item.Accessory[] {
-  const accessories: List.Item.Accessory[] = [{ text: maskApiKey(profile.apiKey) }];
+function buildAccessories(
+  profile: ApiProfile,
+  isDefault: boolean,
+): List.Item.Accessory[] {
+  const accessories: List.Item.Accessory[] = [
+    { text: maskApiKey(profile.apiKey) },
+  ];
   if (isDefault) {
     accessories.unshift({ tag: "Default" });
   }
@@ -99,7 +144,10 @@ function useCreateProfileAction(params: {
         initialDraft={toProfileDraft()}
         onSubmit={async (draft) => {
           const profile = buildProfileFromDraft(draft);
-          await persist({ profiles: [...store.profiles, profile], defaultProfileId: store.defaultProfileId });
+          await persist({
+            profiles: [...store.profiles, profile],
+            defaultProfileId: store.defaultProfileId,
+          });
         }}
       />,
     );
@@ -120,8 +168,13 @@ function useEditProfileAction(params: {
           initialDraft={toProfileDraft(profile)}
           onSubmit={async (draft) => {
             const updatedProfile = buildProfileFromDraft(draft, profile.id);
-            const profiles = store.profiles.map((item) => (item.id === profile.id ? updatedProfile : item));
-            await persist({ profiles, defaultProfileId: store.defaultProfileId });
+            const profiles = store.profiles.map((item) =>
+              item.id === profile.id ? updatedProfile : item,
+            );
+            await persist({
+              profiles,
+              defaultProfileId: store.defaultProfileId,
+            });
           }}
         />,
       );
@@ -142,10 +195,16 @@ function useCreateFromProfileAction(params: {
       push(
         <ProfileEditorForm
           title={`Create from ${sourceProfile.name}`}
-          initialDraft={{ ...draft, name: `${sourceProfile.name}${COPY_PROFILE_NAME_SUFFIX}` }}
+          initialDraft={{
+            ...draft,
+            name: `${sourceProfile.name}${COPY_PROFILE_NAME_SUFFIX}`,
+          }}
           onSubmit={async (nextDraft) => {
             const profile = buildProfileFromDraft(nextDraft);
-            await persist({ profiles: [...store.profiles, profile], defaultProfileId: store.defaultProfileId });
+            await persist({
+              profiles: [...store.profiles, profile],
+              defaultProfileId: store.defaultProfileId,
+            });
           }}
         />,
       );
@@ -154,40 +213,68 @@ function useCreateFromProfileAction(params: {
   );
 }
 
-function useSimpleProfileActions(store: ProfileStoreData, persist: (store: ProfileStoreData) => Promise<void>) {
-  const setDefaultProfile = useCallback(async (profileId: string) => {
-    await persist({ profiles: store.profiles, defaultProfileId: profileId });
-  }, [persist, store.profiles]);
+function useSimpleProfileActions(
+  store: ProfileStoreData,
+  persist: (store: ProfileStoreData) => Promise<void>,
+) {
+  const setDefaultProfile = useCallback(
+    async (profileId: string) => {
+      await persist({ profiles: store.profiles, defaultProfileId: profileId });
+    },
+    [persist, store.profiles],
+  );
 
-  const toggleProfileEnabled = useCallback(async (profileId: string) => {
-    const profiles = store.profiles.map((profile) => (profile.id === profileId ? { ...profile, enabled: !profile.enabled } : profile));
-    await persist({ profiles, defaultProfileId: store.defaultProfileId });
-  }, [persist, store.defaultProfileId, store.profiles]);
+  const toggleProfileEnabled = useCallback(
+    async (profileId: string) => {
+      const profiles = store.profiles.map((profile) =>
+        profile.id === profileId
+          ? { ...profile, enabled: !profile.enabled }
+          : profile,
+      );
+      await persist({ profiles, defaultProfileId: store.defaultProfileId });
+    },
+    [persist, store.defaultProfileId, store.profiles],
+  );
 
-  const move = useCallback(async (profileId: string, offset: -1 | 1) => {
-    const profiles = moveProfile(store.profiles, profileId, offset);
-    await persist({ profiles, defaultProfileId: store.defaultProfileId });
-  }, [persist, store.defaultProfileId, store.profiles]);
+  const move = useCallback(
+    async (profileId: string, offset: -1 | 1) => {
+      const profiles = moveProfile(store.profiles, profileId, offset);
+      await persist({ profiles, defaultProfileId: store.defaultProfileId });
+    },
+    [persist, store.defaultProfileId, store.profiles],
+  );
 
   return { setDefaultProfile, toggleProfileEnabled, move };
 }
 
-function useDeleteProfileAction(store: ProfileStoreData, persist: (store: ProfileStoreData) => Promise<void>) {
-  return useCallback(async (profileId: string) => {
-    const confirmed = await confirmAlert({
-      title: "Delete Profile",
-      message: "This profile will be removed permanently.",
-      primaryAction: { title: "Delete", style: Alert.ActionStyle.Destructive },
-    });
+function useDeleteProfileAction(
+  store: ProfileStoreData,
+  persist: (store: ProfileStoreData) => Promise<void>,
+) {
+  return useCallback(
+    async (profileId: string) => {
+      const confirmed = await confirmAlert({
+        title: "Delete Profile",
+        message: "This profile will be removed permanently.",
+        primaryAction: {
+          title: "Delete",
+          style: Alert.ActionStyle.Destructive,
+        },
+      });
 
-    if (!confirmed) {
-      return;
-    }
+      if (!confirmed) {
+        return;
+      }
 
-    const profiles = store.profiles.filter((profile) => profile.id !== profileId);
-    const defaultProfileId = store.defaultProfileId === profileId ? null : store.defaultProfileId;
-    await persist({ profiles, defaultProfileId });
-  }, [persist, store.defaultProfileId, store.profiles]);
+      const profiles = store.profiles.filter(
+        (profile) => profile.id !== profileId,
+      );
+      const defaultProfileId =
+        store.defaultProfileId === profileId ? null : store.defaultProfileId;
+      await persist({ profiles, defaultProfileId });
+    },
+    [persist, store.defaultProfileId, store.profiles],
+  );
 }
 
 function ProfileListItem(props: {
@@ -213,14 +300,49 @@ function ProfileListItem(props: {
       accessories={buildAccessories(profile, isDefault)}
       actions={
         <ActionPanel>
-          <Action title="Create Profile" icon={Icon.Plus} onAction={props.onCreate} />
-          <Action title="Edit Profile" icon={Icon.Pencil} onAction={() => props.onEdit(profile)} />
-          <Action title="Create from This Profile" icon={Icon.Clipboard} onAction={() => props.onCreateFrom(profile)} />
-          <Action title="Set as Default" icon={Icon.Star} onAction={() => props.onSetDefault(profile.id)} />
-          <Action title={enableTitle} icon={Icon.Checkmark} onAction={() => props.onToggleEnabled(profile.id)} />
-          <Action title="Move Up" icon={Icon.ArrowUp} onAction={() => props.onMove(profile.id, -1)} disabled={index === 0} />
-          <Action title="Move Down" icon={Icon.ArrowDown} onAction={() => props.onMove(profile.id, 1)} disabled={index === total - 1} />
-          <Action title="Delete Profile" style={Action.Style.Destructive} icon={Icon.Trash} onAction={() => props.onDelete(profile.id)} />
+          <Action
+            title="Create Profile"
+            icon={Icon.Plus}
+            onAction={props.onCreate}
+          />
+          <Action
+            title="Edit Profile"
+            icon={Icon.Pencil}
+            onAction={() => props.onEdit(profile)}
+          />
+          <Action
+            title="Create from This Profile"
+            icon={Icon.Clipboard}
+            onAction={() => props.onCreateFrom(profile)}
+          />
+          <Action
+            title="Set as Default"
+            icon={Icon.Star}
+            onAction={() => props.onSetDefault(profile.id)}
+          />
+          <Action
+            title={enableTitle}
+            icon={Icon.Checkmark}
+            onAction={() => props.onToggleEnabled(profile.id)}
+          />
+          <Action
+            title="Move up"
+            icon={Icon.ArrowUp}
+            onAction={() => props.onMove(profile.id, -1)}
+            disabled={index === 0}
+          />
+          <Action
+            title="Move Down"
+            icon={Icon.ArrowDown}
+            onAction={() => props.onMove(profile.id, 1)}
+            disabled={index === total - 1}
+          />
+          <Action
+            title="Delete Profile"
+            style={Action.Style.Destructive}
+            icon={Icon.Trash}
+            onAction={() => props.onDelete(profile.id)}
+          />
         </ActionPanel>
       }
     />
@@ -230,20 +352,48 @@ function ProfileListItem(props: {
 export default function ManageApiProfiles() {
   const { push } = useNavigation();
   const { state, persist } = useProfileStoreState();
-  const createProfile = useCreateProfileAction({ store: state.store, persist, push });
-  const createFromProfile = useCreateFromProfileAction({ store: state.store, persist, push });
-  const editProfile = useEditProfileAction({ store: state.store, persist, push });
-  const { setDefaultProfile, toggleProfileEnabled, move } = useSimpleProfileActions(state.store, persist);
+  const createProfile = useCreateProfileAction({
+    store: state.store,
+    persist,
+    push,
+  });
+  const createFromProfile = useCreateFromProfileAction({
+    store: state.store,
+    persist,
+    push,
+  });
+  const editProfile = useEditProfileAction({
+    store: state.store,
+    persist,
+    push,
+  });
+  const { setDefaultProfile, toggleProfileEnabled, move } =
+    useSimpleProfileActions(state.store, persist);
   const deleteProfile = useDeleteProfileAction(state.store, persist);
   const profiles = useMemo(() => state.store.profiles, [state.store.profiles]);
 
   if (state.error) {
-    return <List isLoading={false} searchBarPlaceholder="Manage API profiles"><List.EmptyView title="Failed to load profiles" description={state.error} /></List>;
+    return (
+      <List isLoading={false} searchBarPlaceholder="Manage API profiles">
+        <List.EmptyView
+          title="Failed to load profiles"
+          description={state.error}
+        />
+      </List>
+    );
   }
 
   return (
-    <List isLoading={state.isLoading} searchBarPlaceholder="Manage API profiles">
-      {profiles.length === 0 ? <List.EmptyView title="No Profiles" description="Create your first API profile." /> : null}
+    <List
+      isLoading={state.isLoading}
+      searchBarPlaceholder="Manage API profiles"
+    >
+      {profiles.length === 0 ? (
+        <List.EmptyView
+          title="No Profiles"
+          description="Create your first API profile."
+        />
+      ) : null}
 
       {profiles.map((profile, index) => (
         <ProfileListItem
@@ -268,7 +418,11 @@ export default function ManageApiProfiles() {
         title="Create New Profile"
         actions={
           <ActionPanel>
-            <Action title="Create Profile" icon={Icon.Plus} onAction={createProfile} />
+            <Action
+              title="Create Profile"
+              icon={Icon.Plus}
+              onAction={createProfile}
+            />
           </ActionPanel>
         }
       />

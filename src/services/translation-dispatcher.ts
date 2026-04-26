@@ -36,17 +36,30 @@ function parseCustomHeaders(headersJson: string): Record<string, string> {
   try {
     parsedHeaders = JSON.parse(headersJson);
   } catch {
-    throw new TranslationProviderError("Profile custom headers JSON is invalid.", "other");
+    throw new TranslationProviderError(
+      "Profile custom headers JSON is invalid.",
+      "other",
+    );
   }
 
-  if (!parsedHeaders || Array.isArray(parsedHeaders) || typeof parsedHeaders !== "object") {
-    throw new TranslationProviderError("Profile custom headers JSON must be an object.", "other");
+  if (
+    !parsedHeaders ||
+    Array.isArray(parsedHeaders) ||
+    typeof parsedHeaders !== "object"
+  ) {
+    throw new TranslationProviderError(
+      "Profile custom headers JSON must be an object.",
+      "other",
+    );
   }
 
-  return Object.entries(parsedHeaders).reduce<Record<string, string>>((result, [key, value]) => {
-    result[key] = String(value);
-    return result;
-  }, {});
+  return Object.entries(parsedHeaders).reduce<Record<string, string>>(
+    (result, [key, value]) => {
+      result[key] = String(value);
+      return result;
+    },
+    {},
+  );
 }
 
 function toOpenAIConfig(profile: ApiProfile): OpenAICompatibleConfig {
@@ -60,22 +73,32 @@ function toOpenAIConfig(profile: ApiProfile): OpenAICompatibleConfig {
   };
 }
 
-function buildCandidateProfiles(profiles: ApiProfile[], defaultProfileId: string | null): ApiProfile[] {
+function buildCandidateProfiles(
+  profiles: ApiProfile[],
+  defaultProfileId: string | null,
+): ApiProfile[] {
   const enabledProfiles = profiles.filter((profile) => profile.enabled);
   if (!defaultProfileId) {
     return enabledProfiles;
   }
 
-  const defaultProfile = enabledProfiles.find((profile) => profile.id === defaultProfileId);
+  const defaultProfile = enabledProfiles.find(
+    (profile) => profile.id === defaultProfileId,
+  );
   if (!defaultProfile) {
     return enabledProfiles;
   }
 
-  return [defaultProfile, ...enabledProfiles.filter((profile) => profile.id !== defaultProfileId)];
+  return [
+    defaultProfile,
+    ...enabledProfiles.filter((profile) => profile.id !== defaultProfileId),
+  ];
 }
 
 function formatAttempts(attempts: TranslationAttemptFailure[]): string {
-  return attempts.map((attempt) => `${attempt.profileName}: ${attempt.message}`).join(" | ");
+  return attempts
+    .map((attempt) => `${attempt.profileName}: ${attempt.message}`)
+    .join(" | ");
 }
 
 export async function dispatchTranslationWithFallback(params: {
@@ -94,7 +117,10 @@ export async function dispatchTranslationWithFallback(params: {
     const profile = candidateProfiles[index];
 
     try {
-      const translatedText = await translateWithOpenAICompatibleAPI(toOpenAIConfig(profile), request);
+      const translatedText = await translateWithOpenAICompatibleAPI(
+        toOpenAIConfig(profile),
+        request,
+      );
       return { translatedText, usedProfileName: profile.name };
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unknown error";
@@ -103,10 +129,16 @@ export async function dispatchTranslationWithFallback(params: {
       const canFallback = isRecoverableProviderError(error);
       const isLastCandidate = index === candidateProfiles.length - 1;
       if (!canFallback || isLastCandidate) {
-        throw new TranslationFallbackError(`Translation failed. ${formatAttempts(attempts)}`, attempts);
+        throw new TranslationFallbackError(
+          `Translation failed. ${formatAttempts(attempts)}`,
+          attempts,
+        );
       }
     }
   }
 
-  throw new TranslationFallbackError("Translation failed without attempts.", attempts);
+  throw new TranslationFallbackError(
+    "Translation failed without attempts.",
+    attempts,
+  );
 }
