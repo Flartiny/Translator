@@ -1,4 +1,10 @@
-import { Clipboard, getPreferenceValues, showToast, Toast } from "@raycast/api";
+import {
+  Clipboard,
+  Detail,
+  getPreferenceValues,
+  showToast,
+  Toast,
+} from "@raycast/api";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ErrorView,
@@ -411,7 +417,7 @@ export default function TranslatorCommand(props: TranslatorCommandProps) {
   const runtimeState = useRuntimeState();
 
   if (runtimeState.isLoading) {
-    return null;
+    return <Detail isLoading={true} markdown="Loading translator..." />;
   }
 
   if (runtimeState.error || !runtimeState.runtime) {

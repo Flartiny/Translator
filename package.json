@@ -31,6 +31,14 @@
       "description": "Translate text between Chinese, Japanese, and English",
       "mode": "view",
       "subtitle": "AI Translate",
+      "keywords": [
+        "translate",
+        "language",
+        "text",
+        "zh",
+        "ja",
+        "en"
+      ],
       "preferences": [
         {
           "name": "defaultTargetLanguage",
@@ -62,6 +70,12 @@
       "description": "Prefill from clipboard and translate",
       "mode": "view",
       "subtitle": "Clipboard",
+      "keywords": [
+        "clipboard",
+        "paste",
+        "translate",
+        "quick"
+      ],
       "preferences": [
         {
           "name": "defaultTargetLanguage",
@@ -92,11 +106,27 @@
       "title": "Translator Profiles",
       "description": "Create and manage API profiles for fallback",
       "mode": "view",
-      "subtitle": "Profiles"
+      "subtitle": "Profiles",
+      "keywords": [
+        "profile",
+        "api",
+        "model",
+        "fallback",
+        "provider"
+      ]
     }
   ],
   "title": "Translator",
   "author": "Flartiny",
+  "keywords": [
+    "translator",
+    "translation",
+    "ai",
+    "clipboard",
+    "chinese",
+    "japanese",
+    "english"
+  ],
   "platforms": [
     "Windows"
   ],

@@ -326,13 +326,13 @@ function ProfileListItem(props: {
             onAction={() => props.onToggleEnabled(profile.id)}
           />
           <Action
-            title="Move up"
+            title="Move Profile up"
             icon={Icon.ArrowUp}
             onAction={() => props.onMove(profile.id, -1)}
             disabled={index === 0}
           />
           <Action
-            title="Move Down"
+            title="Move Profile Down"
             icon={Icon.ArrowDown}
             onAction={() => props.onMove(profile.id, 1)}
             disabled={index === total - 1}
