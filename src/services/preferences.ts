@@ -8,6 +8,7 @@ interface RawPreferences {
   apiKey: string;
   model: string;
   timeoutMs: string;
+  enableStreaming?: boolean;
   customHeadersJson?: string;
   defaultTargetLanguage: string;
 }
@@ -17,6 +18,7 @@ export interface TranslatorPreferences {
   apiKey: string;
   model: string;
   timeoutMs: number;
+  enableStreaming: boolean;
   customHeaders: Record<string, string>;
   defaultTargetLanguage: SupportedLanguage;
 }
@@ -82,6 +84,10 @@ function parseApiBaseUrl(apiBaseUrl: string): string {
   return normalizedBaseUrl;
 }
 
+function parseEnableStreaming(enableStreaming?: boolean): boolean {
+  return Boolean(enableStreaming);
+}
+
 export function loadTranslatorPreferences(): TranslatorPreferences {
   const preferences = getPreferenceValues<RawPreferences>();
   return {
@@ -89,6 +95,7 @@ export function loadTranslatorPreferences(): TranslatorPreferences {
     apiKey: preferences.apiKey,
     model: parseModel(preferences.model),
     timeoutMs: parseTimeoutMs(preferences.timeoutMs),
+    enableStreaming: parseEnableStreaming(preferences.enableStreaming),
     customHeaders: parseCustomHeaders(preferences.customHeadersJson),
     defaultTargetLanguage: parseDefaultTargetLanguage(preferences.defaultTargetLanguage),
   };

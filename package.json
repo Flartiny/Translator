@@ -116,10 +116,19 @@
     {
       "name": "timeoutMs",
       "title": "Request Timeout (ms)",
-      "description": "Abort request when timeout is reached.",
+      "description": "Abort request when timeout is reached. In streaming mode this means inactivity timeout.",
       "type": "textfield",
       "required": true,
       "default": "30000"
+    },
+    {
+      "name": "enableStreaming",
+      "title": "Enable Streaming",
+      "description": "Use streaming responses when provider supports it.",
+      "type": "checkbox",
+      "label": "Enabled",
+      "required": false,
+      "default": false
     },
     {
       "name": "customHeadersJson",
