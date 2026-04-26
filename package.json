@@ -28,9 +28,75 @@
     {
       "name": "translator",
       "title": "Translator",
-      "description": "start Translator",
-      "mode": "no-view",
-      "subtitle": ""
+      "description": "Translate text between Chinese, Japanese, and English",
+      "mode": "view",
+      "subtitle": "AI Translate",
+      "preferences": [
+        {
+          "name": "defaultTargetLanguage",
+          "title": "Default Target Language",
+          "description": "Fallback target language before auto-detection is applied.",
+          "type": "dropdown",
+          "required": true,
+          "default": "en",
+          "data": [
+            {
+              "title": "English",
+              "value": "en"
+            },
+            {
+              "title": "Chinese",
+              "value": "zh"
+            },
+            {
+              "title": "Japanese",
+              "value": "ja"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "preferences": [
+    {
+      "name": "apiBaseUrl",
+      "title": "API Base URL",
+      "description": "OpenAI-compatible API base URL.",
+      "type": "textfield",
+      "required": true,
+      "default": "https://api.openai.com/v1"
+    },
+    {
+      "name": "apiKey",
+      "title": "API Key",
+      "description": "API key for the configured endpoint.",
+      "type": "password",
+      "required": true,
+      "placeholder": "sk-..."
+    },
+    {
+      "name": "model",
+      "title": "Model",
+      "description": "Model name used for translation.",
+      "type": "textfield",
+      "required": true,
+      "default": "gpt-4o-mini"
+    },
+    {
+      "name": "timeoutMs",
+      "title": "Request Timeout (ms)",
+      "description": "Abort request when timeout is reached.",
+      "type": "textfield",
+      "required": true,
+      "default": "30000"
+    },
+    {
+      "name": "customHeadersJson",
+      "title": "Custom Headers JSON",
+      "description": "Optional JSON object for extra HTTP headers.",
+      "type": "textfield",
+      "required": false,
+      "default": ""
     }
   ],
   "title": "Translator",
