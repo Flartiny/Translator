@@ -13,6 +13,7 @@ export function TranslationResultView(props: { result: TranslationResult; onBack
       markdown={result.translatedText}
       metadata={
         <Detail.Metadata>
+          <Detail.Metadata.Label title="Profile" text={result.usedProfileName} />
           <Detail.Metadata.Label title="Source" text={getLanguageLabel(result.sourceLanguage)} />
           <Detail.Metadata.Label title="Target" text={getLanguageLabel(result.targetLanguage)} />
         </Detail.Metadata>

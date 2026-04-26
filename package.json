@@ -86,57 +86,13 @@
           ]
         }
       ]
-    }
-  ],
-  "preferences": [
-    {
-      "name": "apiBaseUrl",
-      "title": "API Base URL",
-      "description": "OpenAI-compatible API base URL.",
-      "type": "textfield",
-      "required": true,
-      "default": "https://api.openai.com/v1"
     },
     {
-      "name": "apiKey",
-      "title": "API Key",
-      "description": "API key for the configured endpoint.",
-      "type": "password",
-      "required": true,
-      "placeholder": "sk-..."
-    },
-    {
-      "name": "model",
-      "title": "Model",
-      "description": "Model name used for translation.",
-      "type": "textfield",
-      "required": true,
-      "default": "gpt-4o-mini"
-    },
-    {
-      "name": "timeoutMs",
-      "title": "Request Timeout (ms)",
-      "description": "Abort request when timeout is reached. In streaming mode this means inactivity timeout.",
-      "type": "textfield",
-      "required": true,
-      "default": "30000"
-    },
-    {
-      "name": "enableStreaming",
-      "title": "Enable Streaming",
-      "description": "Use streaming responses when provider supports it.",
-      "type": "checkbox",
-      "label": "Enabled",
-      "required": false,
-      "default": false
-    },
-    {
-      "name": "customHeadersJson",
-      "title": "Custom Headers JSON",
-      "description": "Optional JSON object for extra HTTP headers.",
-      "type": "textfield",
-      "required": false,
-      "default": ""
+      "name": "manage-api-profiles",
+      "title": "Manage API Profiles",
+      "description": "Create and manage API profiles for fallback",
+      "mode": "view",
+      "subtitle": "Profiles"
     }
   ],
   "title": "Translator",

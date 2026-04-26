@@ -1,20 +1,24 @@
-import {
-  Clipboard,
-  showToast,
-  Toast,
-} from "@raycast/api";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Clipboard, getPreferenceValues, showToast, Toast } from "@raycast/api";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ErrorView, TranslationFormView, TranslationResultView } from "./components/translator-views";
+import { getErrorMessage } from "./services/error-utils";
 import { detectLanguageFromText, inferDefaultTargetLanguage } from "./services/language";
 import { buildTranslatorSystemPrompt, buildTranslatorUserPrompt } from "./services/prompt-builder";
-import { loadTranslatorPreferences, TranslatorPreferences } from "./services/preferences";
-import { translateWithOpenAICompatibleAPI } from "./services/translator-client";
+import { readProfileStore } from "./services/profile-store";
+import { dispatchTranslationWithFallback } from "./services/translation-dispatcher";
 import { isSupportedLanguage, SupportedLanguage } from "./types/language";
+import { CommandPreferences, ProfileStoreData } from "./types/profile";
 import { SubmitTranslationInput, TranslationResult } from "./types/translation";
 
-interface LoadedPreferences {
-  preferences: TranslatorPreferences | null;
+interface LoadedRuntime {
+  defaultTargetLanguage: SupportedLanguage;
+  profileStore: ProfileStoreData;
+}
+
+interface LoadedRuntimeState {
+  runtime: LoadedRuntime | null;
   error: string | null;
+  isLoading: boolean;
 }
 
 export interface TranslatorCommandProps {
@@ -22,20 +26,23 @@ export interface TranslatorCommandProps {
   autoSubmitOnPrefill?: boolean;
 }
 
-function getErrorMessage(error: unknown): string {
-  if (error instanceof Error) {
-    return error.message;
+function parseDefaultTargetLanguage(value: string): SupportedLanguage {
+  if (!isSupportedLanguage(value)) {
+    throw new Error("Default target language must be one of zh, ja, en.");
   }
 
-  return "Unknown error.";
+  return value;
 }
 
-function loadPreferencesOnce(): LoadedPreferences {
-  try {
-    return { preferences: loadTranslatorPreferences(), error: null };
-  } catch (error) {
-    return { preferences: null, error: getErrorMessage(error) };
+async function loadRuntime(): Promise<LoadedRuntime> {
+  const preferences = getPreferenceValues<CommandPreferences>();
+  const defaultTargetLanguage = parseDefaultTargetLanguage(preferences.defaultTargetLanguage);
+  const profileStore = await readProfileStore();
+  if (!profileStore.profiles.length) {
+    throw new Error("No API profiles found. Open 'Manage API Profiles' command to add one.");
   }
+
+  return { defaultTargetLanguage, profileStore };
 }
 
 function resolveSourceLanguage(
@@ -62,43 +69,59 @@ function resolveTargetLanguage(
   return inferDefaultTargetLanguage(sourceLanguage);
 }
 
-function useAutoTargetLanguage(
-  params: {
-    text: string;
-    autoDetectSource: boolean;
-    isTargetManuallySelected: boolean;
-    setTargetLanguage: (language: SupportedLanguage) => void;
-  },
-): void {
-  const { text, autoDetectSource, isTargetManuallySelected, setTargetLanguage } = params;
-  useEffect(() => {
-    if (!autoDetectSource || isTargetManuallySelected || !text.trim()) {
-      return;
-    }
+function useRuntimeState() {
+  const [state, setState] = useState<LoadedRuntimeState>({ runtime: null, error: null, isLoading: true });
 
-    const detectedSourceLanguage = detectLanguageFromText(text);
-    setTargetLanguage(inferDefaultTargetLanguage(detectedSourceLanguage));
-  }, [autoDetectSource, isTargetManuallySelected, setTargetLanguage, text]);
+  useEffect(() => {
+    let isActive = true;
+    const run = async () => {
+      try {
+        const runtime = await loadRuntime();
+        if (isActive) {
+          setState({ runtime, error: null, isLoading: false });
+        }
+      } catch (error) {
+        if (isActive) {
+          setState({ runtime: null, error: getErrorMessage(error), isLoading: false });
+        }
+      }
+    };
+
+    void run();
+    return () => {
+      isActive = false;
+    };
+  }, []);
+
+  return state;
 }
 
-function useTranslationSubmission(preferences: TranslatorPreferences) {
+function useTranslationSubmission(runtime: LoadedRuntime) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [result, setResult] = useState<TranslationResult | null>(null);
 
-  const submit = async (input: SubmitTranslationInput) => {
-    const systemPrompt = buildTranslatorSystemPrompt(input.targetLanguage);
-    const userPrompt = buildTranslatorUserPrompt(input.text, input.sourceLanguage, input.targetLanguage);
-    setIsSubmitting(true);
+  const submit = useCallback(
+    async (input: SubmitTranslationInput) => {
+      const systemPrompt = buildTranslatorSystemPrompt(input.targetLanguage);
+      const userPrompt = buildTranslatorUserPrompt(input.text, input.sourceLanguage, input.targetLanguage);
+      setIsSubmitting(true);
 
-    try {
-      const translatedText = await translateWithOpenAICompatibleAPI(preferences, { systemPrompt, userPrompt });
-      setResult({ ...input, translatedText });
-    } catch (error) {
-      await showToast({ style: Toast.Style.Failure, title: "Translation failed", message: getErrorMessage(error) });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+      try {
+        const dispatchResult = await dispatchTranslationWithFallback({
+          profiles: runtime.profileStore.profiles,
+          defaultProfileId: runtime.profileStore.defaultProfileId,
+          request: { systemPrompt, userPrompt },
+        });
+
+        setResult({ ...input, translatedText: dispatchResult.translatedText, usedProfileName: dispatchResult.usedProfileName });
+      } catch (error) {
+        await showToast({ style: Toast.Style.Failure, title: "Translation failed", message: getErrorMessage(error) });
+      } finally {
+        setIsSubmitting(false);
+      }
+    },
+    [runtime.profileStore.defaultProfileId, runtime.profileStore.profiles],
+  );
 
   return { isSubmitting, result, resetResult: () => setResult(null), submit };
 }
@@ -220,14 +243,32 @@ function useLanguageFieldHandlers(params: {
   return { handleTargetLanguageChange, handleManualSourceLanguageChange };
 }
 
-function useTranslatorController(params: {
-  preferences: TranslatorPreferences;
+function useAutoTargetLanguage(params: {
+  text: string;
+  autoDetectSource: boolean;
+  isTargetManuallySelected: boolean;
+  setTargetLanguage: (language: SupportedLanguage) => void;
+}) {
+  const { text, autoDetectSource, isTargetManuallySelected, setTargetLanguage } = params;
+
+  useEffect(() => {
+    if (!autoDetectSource || isTargetManuallySelected || !text.trim()) {
+      return;
+    }
+
+    const detectedSourceLanguage = detectLanguageFromText(text);
+    setTargetLanguage(inferDefaultTargetLanguage(detectedSourceLanguage));
+  }, [autoDetectSource, isTargetManuallySelected, setTargetLanguage, text]);
+}
+
+function useTranslatorCommandInnerState(params: {
+  runtime: LoadedRuntime;
   prefillSource: "none" | "clipboard";
   autoSubmitOnPrefill: boolean;
 }) {
-  const { preferences, prefillSource, autoSubmitOnPrefill } = params;
-  const state = useTranslatorFormState(preferences.defaultTargetLanguage);
-  const { isSubmitting, result, resetResult, submit } = useTranslationSubmission(preferences);
+  const { runtime, prefillSource, autoSubmitOnPrefill } = params;
+  const state = useTranslatorFormState(runtime.defaultTargetLanguage);
+  const { isSubmitting, result, resetResult, submit } = useTranslationSubmission(runtime);
 
   useAutoTargetLanguage({
     text: state.text,
@@ -244,24 +285,24 @@ function useTranslatorController(params: {
     setTargetLanguage: state.setTargetLanguage,
     submit,
   });
+
   useClipboardPrefill({ enabled: prefillSource === "clipboard", autoSubmitOnPrefill, setText: state.setText, submitFromText });
-  const handleSubmit = useCallback(async () => submitFromText(state.text), [state.text, submitFromText]);
   const handlers = useLanguageFieldHandlers({
     setTargetLanguage: state.setTargetLanguage,
     setIsTargetManuallySelected: state.setIsTargetManuallySelected,
     setManualSourceLanguage: state.setManualSourceLanguage,
   });
 
+  const handleSubmit = useCallback(async () => submitFromText(state.text), [state.text, submitFromText]);
   return { state, handlers, isSubmitting, result, resetResult, handleSubmit };
 }
 
 function TranslatorCommandInner(props: {
-  preferences: TranslatorPreferences;
+  runtime: LoadedRuntime;
   prefillSource: "none" | "clipboard";
   autoSubmitOnPrefill: boolean;
 }) {
-  const { state, handlers, isSubmitting, result, resetResult, handleSubmit } = useTranslatorController(props);
-
+  const { state, handlers, isSubmitting, result, resetResult, handleSubmit } = useTranslatorCommandInnerState(props);
   if (result) {
     return <TranslationResultView result={result} onBack={resetResult} />;
   }
@@ -282,17 +323,26 @@ function TranslatorCommandInner(props: {
   );
 }
 
+function LoadingView() {
+  return <TranslationFormView text="" targetLanguage="en" autoDetectSource manualSourceLanguage="zh" isSubmitting onTextChange={() => {}} onTargetLanguageChange={() => {}} onAutoDetectSourceChange={() => {}} onManualSourceLanguageChange={() => {}} onSubmit={() => {}} />;
+}
+
 export default function TranslatorCommand(props: TranslatorCommandProps) {
   const prefillSource = props.prefillSource ?? "none";
   const autoSubmitOnPrefill = props.autoSubmitOnPrefill ?? false;
-  const loadedPreferences = useMemo(loadPreferencesOnce, []);
-  if (loadedPreferences.error || !loadedPreferences.preferences) {
-    return <ErrorView message={loadedPreferences.error ?? "Failed to load preferences."} />;
+  const runtimeState = useRuntimeState();
+
+  if (runtimeState.isLoading) {
+    return <LoadingView />;
+  }
+
+  if (runtimeState.error || !runtimeState.runtime) {
+    return <ErrorView message={runtimeState.error ?? "Failed to load translator runtime."} />;
   }
 
   return (
     <TranslatorCommandInner
-      preferences={loadedPreferences.preferences}
+      runtime={runtimeState.runtime}
       prefillSource={prefillSource}
       autoSubmitOnPrefill={autoSubmitOnPrefill}
     />

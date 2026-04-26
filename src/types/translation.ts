@@ -4,6 +4,7 @@ export interface TranslationResult {
   sourceLanguage: SupportedLanguage;
   targetLanguage: SupportedLanguage;
   translatedText: string;
+  usedProfileName: string;
 }
 
 export interface SubmitTranslationInput {

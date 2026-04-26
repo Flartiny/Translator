@@ -1,3 +1,32 @@
+export type ProviderErrorKind =
+  | "network"
+  | "timeout"
+  | "rate_limit"
+  | "server_error"
+  | "auth"
+  | "bad_request"
+  | "other";
+
+export class TranslationProviderError extends Error {
+  readonly kind: ProviderErrorKind;
+  readonly statusCode?: number;
+
+  constructor(message: string, kind: ProviderErrorKind, statusCode?: number) {
+    super(message);
+    this.name = "TranslationProviderError";
+    this.kind = kind;
+    this.statusCode = statusCode;
+  }
+}
+
+export function isRecoverableProviderError(error: unknown): boolean {
+  if (!(error instanceof TranslationProviderError)) {
+    return false;
+  }
+
+  return error.kind === "network" || error.kind === "timeout" || error.kind === "rate_limit" || error.kind === "server_error";
+}
+
 export interface OpenAICompatibleConfig {
   apiBaseUrl: string;
   apiKey: string;
@@ -46,15 +75,36 @@ function buildEndpoint(apiBaseUrl: string): string {
   return `${apiBaseUrl}/chat/completions`;
 }
 
-function parseErrorMessage(payload: OpenAICompatibleResponse, fallbackMessage: string): string {
-  const errorMessage = payload.error?.message?.trim();
-  return errorMessage || fallbackMessage;
+function classifyHttpError(statusCode: number): ProviderErrorKind {
+  if (statusCode === 401 || statusCode === 403) {
+    return "auth";
+  }
+
+  if (statusCode === 429) {
+    return "rate_limit";
+  }
+
+  if (statusCode >= 500) {
+    return "server_error";
+  }
+
+  if (statusCode >= 400) {
+    return "bad_request";
+  }
+
+  return "other";
+}
+
+function buildHttpError(response: Response, payload: OpenAICompatibleResponse): TranslationProviderError {
+  const fallbackMessage = `API request failed with status ${response.status}.`;
+  const message = payload.error?.message?.trim() || fallbackMessage;
+  return new TranslationProviderError(message, classifyHttpError(response.status), response.status);
 }
 
 function readTranslation(payload: OpenAICompatibleResponse): string {
   const content = payload.choices?.[0]?.message?.content;
   if (!content?.trim()) {
-    throw new Error("API response does not contain translated content.");
+    throw new TranslationProviderError("API response does not contain translated content.", "other");
   }
 
   return content.trim();
@@ -64,7 +114,7 @@ async function parseResponsePayload(response: Response): Promise<OpenAICompatibl
   try {
     return (await response.json()) as OpenAICompatibleResponse;
   } catch {
-    throw new Error("API response is not valid JSON.");
+    throw new TranslationProviderError("API response is not valid JSON.", "other");
   }
 }
 
@@ -96,7 +146,13 @@ function parseStreamingDelta(dataLine: string): string {
     return "";
   }
 
-  const chunk = JSON.parse(dataLine) as OpenAICompatibleStreamChunk;
+  let chunk: OpenAICompatibleStreamChunk;
+  try {
+    chunk = JSON.parse(dataLine) as OpenAICompatibleStreamChunk;
+  } catch {
+    throw new TranslationProviderError("Invalid streaming chunk from API.", "other");
+  }
+
   const deltaContent = chunk.choices?.[0]?.delta?.content;
   if (typeof deltaContent === "string") {
     return deltaContent;
@@ -125,7 +181,7 @@ function readDataLines(lines: string[]): string[] {
 
 function parseStreamingTranslation(translatedText: string): string {
   if (!translatedText.trim()) {
-    throw new Error("Streaming response does not contain translated content.");
+    throw new TranslationProviderError("Streaming response does not contain translated content.", "other");
   }
 
   return translatedText.trim();
@@ -134,7 +190,7 @@ function parseStreamingTranslation(translatedText: string): string {
 async function parseNonStreamingResponse(response: Response): Promise<string> {
   const payload = await parseResponsePayload(response);
   if (!response.ok) {
-    throw new Error(parseErrorMessage(payload, `API request failed with status ${response.status}.`));
+    throw buildHttpError(response, payload);
   }
 
   return readTranslation(payload);
@@ -148,11 +204,11 @@ async function parseStreamingResponse(response: Response, touchTimeout: () => vo
 
   if (!response.ok) {
     const payload = await parseResponsePayload(response);
-    throw new Error(parseErrorMessage(payload, `API request failed with status ${response.status}.`));
+    throw buildHttpError(response, payload);
   }
 
   if (!response.body) {
-    throw new Error("Streaming response body is empty.");
+    throw new TranslationProviderError("Streaming response body is empty.", "other");
   }
 
   const reader = response.body.getReader();
@@ -196,6 +252,26 @@ function buildRequestPayload(config: OpenAICompatibleConfig, request: Translatio
   };
 }
 
+function wrapUnknownError(error: unknown): TranslationProviderError {
+  if (error instanceof TranslationProviderError) {
+    return error;
+  }
+
+  if (error instanceof DOMException && error.name === "AbortError") {
+    return new TranslationProviderError("Request timeout.", "timeout");
+  }
+
+  if (error instanceof TypeError) {
+    return new TranslationProviderError(error.message || "Network request failed.", "network");
+  }
+
+  if (error instanceof Error) {
+    return new TranslationProviderError(error.message, "other");
+  }
+
+  return new TranslationProviderError("Unknown provider error.", "other");
+}
+
 export async function translateWithOpenAICompatibleAPI(
   config: OpenAICompatibleConfig,
   request: TranslationRequest,
@@ -214,11 +290,7 @@ export async function translateWithOpenAICompatibleAPI(
       ? await parseStreamingResponse(response, timeout.touch)
       : await parseNonStreamingResponse(response);
   } catch (error) {
-    if (error instanceof DOMException && error.name === "AbortError") {
-      throw new Error(`Request timeout after ${config.timeoutMs} ms.`);
-    }
-
-    throw error;
+    throw wrapUnknownError(error);
   } finally {
     timeout.clear();
   }
