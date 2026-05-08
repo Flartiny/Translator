@@ -325,18 +325,20 @@ function ProfileListItem(props: {
             icon={Icon.Checkmark}
             onAction={() => props.onToggleEnabled(profile.id)}
           />
-          <Action
-            title="Move Profile up"
-            icon={Icon.ArrowUp}
-            onAction={() => props.onMove(profile.id, -1)}
-            disabled={index === 0}
-          />
-          <Action
-            title="Move Profile Down"
-            icon={Icon.ArrowDown}
-            onAction={() => props.onMove(profile.id, 1)}
-            disabled={index === total - 1}
-          />
+          {index > 0 && (
+            <Action
+              title="Move Profile up"
+              icon={Icon.ArrowUp}
+              onAction={() => props.onMove(profile.id, -1)}
+            />
+          )}
+          {index < total - 1 && (
+            <Action
+              title="Move Profile Down"
+              icon={Icon.ArrowDown}
+              onAction={() => props.onMove(profile.id, 1)}
+            />
+          )}
           <Action
             title="Delete Profile"
             style={Action.Style.Destructive}
